@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Peta AMO & AMF Interaktif</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body { margin: 0; }
+    #map { height: 100vh; }
+    .layer-toggle, .legend {
+      position: absolute;
+      background: white;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      z-index: 1000;
+    }
+    .layer-toggle { top: 10px; right: 10px; }
+    .legend { bottom: 10px; right: 10px; }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="layer-toggle">
+  <label><input type="radio" name="layer" value="amo" checked> Tampilkan AMO</label><br>
+  <label><input type="radio" name="layer" value="amf"> Tampilkan AMF</label>
+</div>
+
+<div class="legend">
+  <strong>Rentang Nilai</strong><br>
+  <div><span style="background:brown;color:white;padding:0 4px;">= 0</span></div>
+  <div><span style="background:red;padding:0 6px;">1 – 3</span></div>
+  <div><span style="background:gold;padding:0 6px;">4 – 8</span></div>
+  <div><span style="background:green;padding:0 6px;">9 – 15</span></div>
+  <div><span style="background:blue;padding:0 6px;">16 – 25</span></div>
+  <div><span style="background:purple;color:white;padding:0 6px;">26 – 35</span></div>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script>
+const map = L.map("map").setView([-6.5, 110], 6);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "Leaflet © OpenStreetMap"
+}).addTo(map);
+
+function getColor(n) {
+  if (n === 0) return "brown";
+  if (n > 0 && n <= 3) return "red";
+  if (n > 3 && n <= 8) return "gold";
+  if (n > 8 && n <= 15) return "green";
+  if (n > 15 && n <= 25) return "blue";
+  if (n > 25 && n <= 35) return "purple";
+  return "gray"; // untuk nilai di luar rentang
+}
+
+const amoLayer = L.layerGroup().addTo(map);
+const amfLayer = L.layerGroup();
+
+fetch("data.csv")
+  .then(res => res.text())
+  .then(csv => {
+    const data = Papa.parse(csv, {
+      header: true,
+      skipEmptyLines: true,
+      delimiter: ";"
+    }).data;
+
+    data.forEach(row => {
+      const lat = parseFloat(row.LAT);
+      const lng = parseFloat(row.LONG);
+      const amo = parseFloat(row.AMO);
+      const amf = parseFloat(row.AMF);
+      const nama = row["Kode ICAO"] || "Tanpa Nama";
+
+      if (!isNaN(lat) && !isNaN(lng)) {
+        const popup = `<strong>${nama}</strong><br>AMO: ${amo}<br>AMF: ${amf}`;
+
+        const markerAMO = L.circleMarker([lat, lng], {
+          radius: 8,
+          fillColor: getColor(amo),
+          fillOpacity: 0.9,
+          color: "#333",
+          weight: 1
+        }).bindPopup(popup);
+
+        const markerAMF = L.circleMarker([lat, lng], {
+          radius: 8,
+          fillColor: getColor(amf),
+          fillOpacity: 0.9,
+          color: "#333",
+          weight: 1
+        }).bindPopup(popup);
+
+        amoLayer.addLayer(markerAMO);
+        amfLayer.addLayer(markerAMF);
+      }
+    });
+  })
+  .catch(err => {
+    console.error("Gagal memuat CSV:", err);
+    alert("Gagal membaca file CSV. Pastikan nama dan format file benar.");
+  });
+
+document.querySelectorAll("input[name='layer']").forEach(input => {
+  input.addEventListener("change", e => {
+    if (e.target.value === "amo") {
+      map.addLayer(amoLayer);
+      map.removeLayer(amfLayer);
+    } else {
+      map.addLayer(amfLayer);
+      map.removeLayer(amoLayer);
+    }
+  });
+});
+</script>
+</body>
+</html>
