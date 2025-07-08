@@ -48,7 +48,7 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 }).addTo(map);
 
 function getColor(n) {
-  if (n === 0) return "brown";
+  if (n === 0) return "black";
   if (n > 0 && n <= 3) return "red";
   if (n > 3 && n <= 8) return "gold";
   if (n > 8 && n <= 15) return "green";
